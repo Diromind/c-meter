@@ -46,6 +46,8 @@ func main() {
 	b.Handle("/get", handler.HandleGet)
 	b.Handle("/today", handler.HandleGet)
 	b.Handle("/record", handler.HandleRecord)
+	b.Handle("/set_noon", handler.HandleSetNoon)
+	b.Handle("/set_lang", handler.HandleSetLang)
 
 	log.Println("Bot started successfully!")
 	b.Start()

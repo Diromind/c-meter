@@ -23,3 +23,9 @@ type Record struct {
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
+type UserPreferences struct {
+	Login string    `json:"login" db:"login"`
+	Noon  time.Time `json:"noon" db:"noon"`
+	Lang  string    `json:"lang" db:"lang"`
+}
+

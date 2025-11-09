@@ -32,7 +32,9 @@ func (h *BotHandler) HandleHelp(c tele.Context) error {
 /ping - Check database connection and schema version
 /get [days] - Get your entries (default: 1 day)
 /today - Get today's entries
-/record <name> <ccal> [proteins] [fats] [carbs] - Add a food record`
+/record <name> <ccal> [proteins] [fats] [carbs] - Add a food record
+/set_noon <HH:MM> - Set your day flip time (default: 00:00)
+/set_lang <lang> - Set your language (ru/en)`
 
 	return c.Send(helpText)
 }
@@ -183,5 +185,56 @@ func (h *BotHandler) HandleRecord(c tele.Context) error {
 
 	message := fmt.Sprintf("✅ Recorded: %s\n📊 Calories: %d\nID: %s", name, ccal, record.UUID)
 	return c.Send(message)
+}
+
+func (h *BotHandler) HandleSetNoon(c tele.Context) error {
+	args := c.Args()
+	if len(args) == 0 {
+		return c.Send("Usage: /set_noon <HH:MM>\nExample: /set_noon 03:00")
+	}
+
+	timeStr := args[0] + ":00"
+	noonTime, err := time.Parse("15:04:05", timeStr)
+	if err != nil {
+		return c.Send("Invalid time format. Use HH:MM (e.g., 03:00)")
+	}
+
+	login := c.Sender().Username
+	if login == "" {
+		login = fmt.Sprintf("user_%d", c.Sender().ID)
+	}
+
+	err = h.db.UpsertUserNoon(login, noonTime)
+	if err != nil {
+		log.Printf("Error setting noon: %v", err)
+		return c.Send("❌ Error setting day flip time: " + err.Error())
+	}
+
+	return c.Send(fmt.Sprintf("✅ Day flip time set to %s", args[0]))
+}
+
+func (h *BotHandler) HandleSetLang(c tele.Context) error {
+	args := c.Args()
+	if len(args) == 0 {
+		return c.Send("Usage: /set_lang <lang>\nExample: /set_lang ru\nSupported: ru, en")
+	}
+
+	lang := args[0]
+	if lang != "ru" && lang != "en" {
+		return c.Send("Unsupported language. Available: ru, en")
+	}
+
+	login := c.Sender().Username
+	if login == "" {
+		login = fmt.Sprintf("user_%d", c.Sender().ID)
+	}
+
+	err := h.db.UpsertUserLang(login, lang)
+	if err != nil {
+		log.Printf("Error setting language: %v", err)
+		return c.Send("❌ Error setting language: " + err.Error())
+	}
+
+	return c.Send(fmt.Sprintf("✅ Language set to %s", lang))
 }
 

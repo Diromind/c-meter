@@ -145,3 +145,51 @@ func (db *DB) GetRecordsByLoginAndTimeRange(login string, startTime, endTime tim
 	
 	return records, nil
 }
+
+// UserPreferences operations
+
+func (db *DB) GetUserPreferences(login string) (*models.UserPreferences, error) {
+	prefs := &models.UserPreferences{}
+	
+	query := `
+		SELECT login, noon, lang
+		FROM user_preferences
+		WHERE login = $1
+	`
+	
+	err := db.QueryRow(query, login).Scan(
+		&prefs.Login,
+		&prefs.Noon,
+		&prefs.Lang,
+	)
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return prefs, nil
+}
+
+func (db *DB) UpsertUserNoon(login string, noon time.Time) error {
+	query := `
+		INSERT INTO user_preferences (login, noon)
+		VALUES ($1, $2)
+		ON CONFLICT (login)
+		DO UPDATE SET noon = EXCLUDED.noon
+	`
+	
+	_, err := db.Exec(query, login, noon)
+	return err
+}
+
+func (db *DB) UpsertUserLang(login string, lang string) error {
+	query := `
+		INSERT INTO user_preferences (login, lang)
+		VALUES ($1, $2)
+		ON CONFLICT (login)
+		DO UPDATE SET lang = EXCLUDED.lang
+	`
+	
+	_, err := db.Exec(query, login, lang)
+	return err
+}
