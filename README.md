@@ -1,1 +1,3 @@
-# c-meter
+## License
+
+MIT
