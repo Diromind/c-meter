@@ -6,6 +6,7 @@ import (
 
 	"backend/config"
 	"backend/internal/bot"
+	"backend/internal/bot/handlers"
 	"backend/internal/database"
 
 	tele "gopkg.in/telebot.v3"
@@ -39,6 +40,7 @@ func main() {
 	}
 
 	handler := bot.NewBotHandler(db)
+	menuHandler := handlers.NewMenuHandler(db)
 
 	b.Handle("/start", handler.HandleStart)
 	b.Handle("/help", handler.HandleHelp)
@@ -48,6 +50,10 @@ func main() {
 	b.Handle("/record", handler.HandleRecord)
 	b.Handle("/set_noon", handler.HandleSetNoon)
 	b.Handle("/set_lang", handler.HandleSetLang)
+	
+	b.Handle("/menu", menuHandler.HandleMenu)
+	b.Handle(&menuHandler.BtnLocations, menuHandler.HandleLocationsCallback)
+	b.Handle(tele.OnCallback, menuHandler.HandleCallback)
 
 	log.Println("Bot started successfully!")
 	b.Start()

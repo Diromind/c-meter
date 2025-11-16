@@ -29,3 +29,12 @@ type UserPreferences struct {
 	Lang  string    `json:"lang" db:"lang"`
 }
 
+type UserCommonItem struct {
+	UUID        uuid.UUID  `json:"uuid" db:"uuid"`
+	Login       string     `json:"login" db:"login"`
+	Path        string     `json:"path" db:"path"`
+	Name        string     `json:"name" db:"name"`
+	ProductUUID *uuid.UUID `json:"product_uuid,omitempty" db:"product_uuid"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+}
+

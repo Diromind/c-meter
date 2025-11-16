@@ -2,6 +2,8 @@ package database
 
 import (
 	"backend/internal/models"
+	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -192,4 +194,161 @@ func (db *DB) UpsertUserLang(login string, lang string) error {
 	
 	_, err := db.Exec(query, login, lang)
 	return err
+}
+
+// UserCommonItem operations
+
+func (db *DB) InsertUserCommonItem(login, path, name string, productUUID *uuid.UUID) (*models.UserCommonItem, error) {
+	item := &models.UserCommonItem{}
+	
+	query := `
+		INSERT INTO user_common_items (login, path, name, product_uuid)
+		VALUES ($1, $2::ltree, $3, $4)
+		RETURNING uuid, login, path, name, product_uuid, created_at
+	`
+	
+	err := db.QueryRow(query, login, path, name, productUUID).Scan(
+		&item.UUID,
+		&item.Login,
+		&item.Path,
+		&item.Name,
+		&item.ProductUUID,
+		&item.CreatedAt,
+	)
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return item, nil
+}
+
+func (db *DB) GetUserCommonItemsByLogin(login string) ([]*models.UserCommonItem, error) {
+	query := `
+		SELECT uuid, login, path, name, product_uuid, created_at
+		FROM user_common_items
+		WHERE login = $1
+		ORDER BY path
+	`
+	
+	rows, err := db.Query(query, login)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var items []*models.UserCommonItem
+	for rows.Next() {
+		item := &models.UserCommonItem{}
+		err := rows.Scan(
+			&item.UUID,
+			&item.Login,
+			&item.Path,
+			&item.Name,
+			&item.ProductUUID,
+			&item.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	
+	return items, nil
+}
+
+func (db *DB) GetUserCommonItemsByLoginAndPath(login, pathPattern string) ([]*models.UserCommonItem, error) {
+	query := `
+		SELECT uuid, login, path, name, product_uuid, created_at
+		FROM user_common_items
+		WHERE login = $1 AND path ~ $2
+		ORDER BY path
+	`
+	
+	rows, err := db.Query(query, login, pathPattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var items []*models.UserCommonItem
+	for rows.Next() {
+		item := &models.UserCommonItem{}
+		err := rows.Scan(
+			&item.UUID,
+			&item.Login,
+			&item.Path,
+			&item.Name,
+			&item.ProductUUID,
+			&item.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	
+	return items, nil
+}
+
+func (db *DB) GetUserCommonItemsAtLevel(login, parentPath string) ([]*models.UserCommonItem, error) {
+	var query string
+	var rows *sql.Rows
+	var err error
+	
+	if parentPath == "" {
+		query = `
+			SELECT uuid, login, path, name, product_uuid, created_at
+			FROM user_common_items
+			WHERE login = $1 AND nlevel(path) = 1
+			ORDER BY path
+		`
+		rows, err = db.Query(query, login)
+	} else {
+		query = `
+			SELECT uuid, login, path, name, product_uuid, created_at
+			FROM user_common_items
+			WHERE login = $1 AND path ~ $2 AND nlevel(path) = $3
+			ORDER BY path
+		`
+		pattern := parentPath + ".*{1}"
+		level := strings.Count(parentPath, ".") + 2
+		rows, err = db.Query(query, login, pattern, level)
+	}
+	
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var items []*models.UserCommonItem
+	for rows.Next() {
+		item := &models.UserCommonItem{}
+		err := rows.Scan(
+			&item.UUID,
+			&item.Login,
+			&item.Path,
+			&item.Name,
+			&item.ProductUUID,
+			&item.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	
+	return items, nil
 }
